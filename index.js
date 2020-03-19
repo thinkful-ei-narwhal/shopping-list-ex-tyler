@@ -13,6 +13,7 @@
 //check and uncheck items on the list by clicking the "Check" button
 //permanently remove items from the list
 
+//Event listener for "submit" being clicked. Adds a <li> element that adds what the user added to the shopping list
 $(function addItem() {
   $('#js-shopping-list-form').submit(function(event) {
     event.preventDefault();
@@ -32,6 +33,22 @@ $(function addItem() {
   </li>`);
       $('.shopping-list').append(entry);
     }
+  });
+
+
+
+  //delete button
+  $('.shopping-list').on(click, '.shopping-item-delete', event => {
+    event.preventDefault();
+    //Find the parents of the button clicked -- delete -- which should be the "li" container, and remove it
+    $(event.currentTarget).parents('li').remove();
+  });
+
+  //Check-mark button
+  $('.shopping-list').on(click, '.shopping-item-toggle', event => {
+    event.preventDefault();
+    //The "toggleClass" method removes the "checked" class if present, adds if not. CSS takes care of rest.
+    $(event.currentTarget).parents('li').find('.shopping-item').toggleClass('shopping-item__checked');
   });
 });
 
