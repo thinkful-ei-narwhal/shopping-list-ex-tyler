@@ -1,54 +1,159 @@
-/* eslint-disable no-undef */
 /* eslint-disable strict */
-//To complete this challenge requires:
+const store = {
+  items: [
+    { id: cuid(), name: 'apples', checked: false },
+    { id: cuid(), name: 'oranges', checked: false },
+    { id: cuid(), name: 'milk', checked: true },
+    { id: cuid(), name: 'bread', checked: false }
+  ],
+  hideCheckedItems: false
+};
 
-//1. Using DOM manipulation and traversal to dynamically add and remove HTML elements and apply styles.
-//(done)2. Linking to an externally hosted library (jQuery) and a locally hosted JavaScript file (index.js).
-//(done)3. Linking to your application JavaScript file from the index.html page.
-//4. Using this and event delegation
+const generateItemElement = function (item) {
+  let itemTitle = `<span class="shopping-item shopping-item__checked">${item.name}</span>`;
+  // Added a form here to allow the user to edit 
+  // the shopping item if the checked property
+  // on our item is set to false
+  if (!item.checked) {
+    itemTitle = `
+      <form class="js-edit-item">
+        <input class="shopping-item" type="text" value="${item.name}" />
+      </form>
+    `;
+  }
 
-//Hint: you may find it helpful to read up on and use the following jQuery methods: .submit(), preventDefault(), toggleClass(), and closest().
+  return `
+    <li class="js-item-element" data-item-id="${item.id}">
+      ${itemTitle}
+      <div class="shopping-item-controls">
+        <button class="shopping-item-toggle js-item-toggle">
+          <span class="button-label">check</span>
+        </button>
+        <button class="shopping-item-delete js-item-delete">
+          <span class="button-label">delete</span>
+        </button>
+      </div>
+    </li>`;
+};
 
-//enter items they need to purchase by entering text and hitting "Return" or clicking the "Add item" button
-//check and uncheck items on the list by clicking the "Check" button
-//permanently remove items from the list
+const generateShoppingItemsString = function (shoppingList) {
+  const items = shoppingList.map((item) => generateItemElement(item));
+  return items.join('');
+};
 
-//Event listener for "submit" being clicked. Adds a <li> element that adds what the user added to the shopping list
-$(function addItem() {
-  $('#js-shopping-list-form').submit(function(event) {
+const render = function () {
+  // Filter item list if store prop is true by item.checked === false
+  let items = [...store.items];
+  if (store.hideCheckedItems) {
+    items = items.filter(item => !item.checked);
+  }
+  // render the shopping list in the DOM
+  const shoppingListItemsString = generateShoppingItemsString(items);
+  // insert that HTML into the DOM
+  $('.js-shopping-list').html(shoppingListItemsString);
+};
+
+const addItemToShoppingList = function (itemName) {
+  store.items.push({ id: cuid(), name: itemName, checked: false });
+};
+
+const handleNewItemSubmit = function () {
+  $('#js-shopping-list-form').submit(function (event) {
     event.preventDefault();
-    const newItem = $(event.currentTarget).find('#shopping-list-entry').val();
-    console.log(newItem);
-    if (newItem !=='') {
-      const entry = $(`<li>
-    <span class="shopping-item">${newItem}</span>
-    <div class="shopping-item-controls">
-      <button class="shopping-item-toggle">
-        <span class="button-label">check</span>
-      </button>
-      <button class="shopping-item-delete">
-        <span class="button-label">delete</span>
-      </button>
-    </div>
-  </li>`);
-      $('.shopping-list').append(entry);
-    }
+    const newItemName = $('.js-shopping-list-entry').val();
+    $('.js-shopping-list-entry').val('');
+    addItemToShoppingList(newItemName);
+    render();
   });
+};
 
+const toggleCheckedForListItem = function (id) {
+  const foundItem = store.items.find(item => item.id === id);
+  foundItem.checked = !foundItem.checked;
+};
 
+const handleItemCheckClicked = function () {
+  $('.js-shopping-list').on('click', '.js-item-toggle', event => {
+    const id = getItemIdFromElement(event.currentTarget);
+    toggleCheckedForListItem(id);
+    render();
+  });
+};
 
-  //delete button
-  $('.shopping-list').on(click, '.shopping-item-delete', event => {
+const getItemIdFromElement = function (item) {
+  return $(item)
+    .closest('.js-item-element')
+    .data('item-id');
+};
+
+/**
+ * Responsible for deleting a list item.
+ * @param {string} id 
+ */
+const deleteListItem = function (id) {
+  const index = store.items.findIndex(item => item.id === id);
+  store.items.splice(index, 1);
+};
+
+const handleDeleteItemClicked = function () {
+  // like in `handleItemCheckClicked`, we use event delegation
+  $('.js-shopping-list').on('click', '.js-item-delete', event => {
+    // get the index of the item in store.items
+    const id = getItemIdFromElement(event.currentTarget);
+    // delete the item
+    deleteListItem(id);
+    // render the updated shopping list
+    render();
+  });
+};
+
+const editListItemName = function (id, itemName) {
+  const item = store.items.find(item => item.id === id);
+  item.name = itemName;
+};
+
+/**
+ * Toggles the store.hideCheckedItems property
+ */
+const toggleCheckedItemsFilter = function () {
+  store.hideCheckedItems = !store.hideCheckedItems;
+};
+
+/**
+ * Places an event listener on the checkbox
+ * for hiding completed items.
+ */
+const handleToggleFilterClick = function () {
+  $('.js-filter-checked').click(() => {
+    toggleCheckedItemsFilter();
+    render();
+  });
+};
+
+/**
+ * This function handles the submission of 
+ * the new '.js-edit-item' form added within 
+ * our 'generateItemElement' function.
+ */
+const handleEditShoppingItemSubmit = function () {
+  $('.js-shopping-list').on('submit', '.js-edit-item', event => {
     event.preventDefault();
-    //Find the parents of the button clicked -- delete -- which should be the "li" container, and remove it
-    $(event.currentTarget).parents('li').remove();
+    const id = getItemIdFromElement(event.currentTarget);
+    const itemName = $(event.currentTarget).find('.shopping-item').val();
+    editListItemName(id, itemName);
+    render();
   });
+};
 
-  //Check-mark button
-  $('.shopping-list').on(click, '.shopping-item-toggle', event => {
-    event.preventDefault();
-    //The "toggleClass" method removes the "checked" class if present, adds if not. CSS takes care of rest.
-    $(event.currentTarget).parents('li').find('.shopping-item').toggleClass('shopping-item__checked');
-  });
-});
+const handleShoppingList = function () {
+  render();
+  handleNewItemSubmit();
+  handleItemCheckClicked();
+  handleDeleteItemClicked();
+  // calling our new edit function
+  handleEditShoppingItemSubmit();
+  handleToggleFilterClick();
+};
 
+// when the page loads, call `handleShoppingList`
+$(handleShoppingList);
